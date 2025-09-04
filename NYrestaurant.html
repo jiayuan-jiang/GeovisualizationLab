@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New York Restaurants Interactive Map</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <!-- Marker Cluster CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .stats-bar {
+            background: #f8f9fa;
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff6b6b;
+            display: block;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        #map {
+            height: 700px;
+            width: 100%;
+        }
+
+        /* Custom popup styles */
+        .leaflet-popup-content-wrapper {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .restaurant-popup {
+            min-width: 280px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .restaurant-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 15px;
+            margin: -20px -20px 15px -20px;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .restaurant-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .restaurant-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stars {
+            color: #ffd700;
+            font-size: 1.1em;
+        }
+
+        .rating-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+
+        .restaurant-info {
+            padding: 0 5px;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .info-icon {
+            color: #ff6b6b;
+            font-weight: bold;
+            min-width: 16px;
+        }
+
+        .info-text {
+            flex: 1;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .price-category {
+            display: inline-block;
+            background: #e8f5e8;
+            color: #28a745;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .visit-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 10px 15px;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+
+        .visit-btn:hover {
+            transform: translateY(-2px);
+            text-decoration: none;
+            color: white;
+        }
+
+        /* Loading spinner */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #ff6b6b;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            #map {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍽️ New York Restaurants Map</h1>
+            <p>Discover amazing dining experiences across the New York area</p>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat">
+                <span class="stat-number" id="total-restaurants">670</span>
+                <span class="stat-label">Total Restaurants</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number" id="avg-rating">4.2</span>
+                <span class="stat-label">Average Rating</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number" id="total-reviews">156K</span>
+                <span class="stat-label">Total Reviews</span>
+            </div>
+        </div>
+
+        <div style="position: relative;">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading restaurant data...</p>
+            </div>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <!-- Marker Cluster JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+
+    <script>
+        let map;
+        let markers;
+        let restaurantData = [];
+
+        // Initialize the map
+        function initMap() {
+            // Create map centered on New York area
+            map = L.map('map').setView([40.7589, -73.9851], 11);
+
+            // Add beautiful tile layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Initialize marker cluster group
+            markers = L.markerClusterGroup({
+                chunkedLoading: true,
+                chunkProgress: updateProgress,
+                singleMarkerMode: false,
+                maxClusterRadius: 60,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true
+            });
+
+            map.addLayer(markers);
+        }
+
+        // Load and parse CSV data
+        async function loadRestaurantData() {
+            try {
+                const response = await fetch('./google_maps_restaurants(cleaned).csv');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const csvContent = await response.text();
+
+                // Parse CSV
+                const lines = csvContent.split('\n');
+                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    // Parse CSV line (handling commas in quoted fields)
+                    const values = parseCSVLine(line);
+                    if (values.length === headers.length) {
+                        const restaurant = {};
+                        headers.forEach((header, index) => {
+                            restaurant[header] = values[index];
+                        });
+
+                        // Validate required fields
+                        if (restaurant.Lat && restaurant.Lon && restaurant.Name &&
+                            !isNaN(parseFloat(restaurant.Lat)) && !isNaN(parseFloat(restaurant.Lon))) {
+                            restaurant.Lat = parseFloat(restaurant.Lat);
+                            restaurant.Lon = parseFloat(restaurant.Lon);
+                            restaurant.Rating = restaurant.Rating ? parseFloat(restaurant.Rating) : null;
+                            restaurant['Rating Count'] = restaurant['Rating Count'] ? parseInt(restaurant['Rating Count']) : null;
+                            restaurant['Price Category'] = restaurant['Price Category'] ? parseInt(restaurant['Price Category']) : null;
+
+                            restaurantData.push(restaurant);
+                        }
+                    }
+                }
+
+                console.log(`Loaded ${restaurantData.length} restaurants`);
+                updateStatistics();
+                addMarkersToMap();
+
+            } catch (error) {
+                console.error('Error loading restaurant data:', error);
+                document.getElementById('loading').innerHTML = '<p style="color: red;">Error loading restaurant data. Please make sure the CSV file is in the same directory as this HTML file.</p>';
+            }
+        }
+
+        // Parse CSV line handling quoted fields
+        function parseCSVLine(line) {
+            const values = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    values.push(current.trim().replace(/^"(.*)"$/, '$1'));
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            values.push(current.trim().replace(/^"(.*)"$/, '$1'));
+            return values;
+        }
+
+        // Update statistics in the header
+        function updateStatistics() {
+            const validRatings = restaurantData.filter(r => r.Rating !== null);
+            const totalReviews = restaurantData.reduce((sum, r) => sum + (r['Rating Count'] || 0), 0);
+            const avgRating = validRatings.length > 0 ?
+                validRatings.reduce((sum, r) => sum + r.Rating, 0) / validRatings.length : 0;
+
+            document.getElementById('total-restaurants').textContent = restaurantData.length;
+            document.getElementById('avg-rating').textContent = avgRating.toFixed(1);
+            document.getElementById('total-reviews').textContent = formatNumber(totalReviews);
+        }
+
+        // Format large numbers
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
+            return num.toString();
+        }
+
+        // Generate star rating HTML
+        function generateStars(rating) {
+            if (!rating) return '<span style="color: #666;">No rating</span>';
+
+            const fullStars = Math.floor(rating);
+            const halfStar = rating % 1 >= 0.5;
+            let stars = '';
+
+            for (let i = 0; i < fullStars; i++) {
+                stars += '★';
+            }
+            if (halfStar) stars += '☆';
+
+            // Fill remaining with empty stars
+            const remaining = 5 - Math.ceil(rating);
+            for (let i = 0; i < remaining; i++) {
+                stars += '☆';
+            }
+
+            return `<span class="stars">${stars}</span> <strong>${rating.toFixed(1)}</strong>`;
+        }
+
+        // Get price category display
+        function getPriceCategory(category) {
+            if (!category) return '';
+            const labels = ['', '$', '$$', '$$$', '$$$$'];
+            const label = labels[category] || '$';
+            return `<span class="price-category">${label}</span>`;
+        }
+
+        // Create popup content for a restaurant
+        function createPopupContent(restaurant) {
+            const ratingHtml = generateStars(restaurant.Rating);
+            const ratingCount = restaurant['Rating Count'] ?
+                `<span class="rating-count">(${restaurant['Rating Count']} reviews)</span>` : '';
+
+            return `
+                <div class="restaurant-popup">
+                    <div class="restaurant-header">
+                        <div class="restaurant-name">${restaurant.Name}</div>
+                        <div class="restaurant-rating">
+                            ${ratingHtml}
+                            ${ratingCount}
+                        </div>
+                    </div>
+                    <div class="restaurant-info">
+                        <div class="info-row">
+                            <span class="info-icon">📍</span>
+                            <span class="info-text">${restaurant.Address || 'Address not available'}</span>
+                        </div>
+                        ${restaurant['Price Category'] ? `
+                        <div class="info-row">
+                            <span class="info-icon">💰</span>
+                            <span class="info-text">${getPriceCategory(restaurant['Price Category'])}</span>
+                        </div>` : ''}
+                        ${restaurant.ZipCode ? `
+                        <div class="info-row">
+                            <span class="info-icon">🏘️</span>
+                            <span class="info-text">ZIP: ${restaurant.ZipCode}</span>
+                        </div>` : ''}
+                        <div style="text-align: center; margin-top: 15px;">
+                            <a href="${restaurant.URL}" target="_blank" class="visit-btn">
+                                🗺️ View on Google Maps
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Add markers to map
+        function addMarkersToMap() {
+            restaurantData.forEach(restaurant => {
+                // Create custom icon based on rating
+                let iconColor = '#ff6b6b'; // Default red
+                if (restaurant.Rating >= 4.5) iconColor = '#28a745'; // Green for excellent
+                else if (restaurant.Rating >= 4.0) iconColor = '#ffc107'; // Yellow for good
+                else if (restaurant.Rating >= 3.5) iconColor = '#fd7e14'; // Orange for average
+
+                const customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="
+                        width: 25px;
+                        height: 25px;
+                        background-color: ${iconColor};
+                        border: 3px solid white;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        font-size: 14px;
+                    ">🍽️</div>`,
+                    iconSize: [25, 25],
+                    iconAnchor: [12, 12]
+                });
+
+                const marker = L.marker([restaurant.Lat, restaurant.Lon], { icon: customIcon })
+                    .bindPopup(createPopupContent(restaurant));
+
+                markers.addLayer(marker);
+            });
+
+            // Hide loading indicator
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Update progress during loading
+        function updateProgress(processed, total, elapsed) {
+            if (processed === total) {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadRestaurantData();
+        });
+    </script>
+</body>
+</html>
